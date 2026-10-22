@@ -2,9 +2,6 @@ import streamlit as st
 import requests
 import json
 
-# БЕЗОПАСНО: Код автоматически забирает ключ из скрытого сейфа Streamlit
-API_KEY = st.secrets["MY_GROQ_SECRET"]
-
 st.set_page_config(page_title="AI Burnout Helper", page_icon="💻", layout="centered")
 st.title("💻 ИИ-Ассистент против выгорания программистов")
 st.write("Поделись тем, что тебя бесит в коде или работе, а ИИ-психолог разберет твою проблему.")
@@ -23,34 +20,44 @@ if user_input := st.chat_input("Напиши, что случилось..."):
 
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
-        system_prompt = (
-            "Ты — профессиональный психолог для программистов. "
-            "Отвечай строго на русском языке, дружелюбно, с легким айтишным юмором. "
-            "Выслушай проблему, прояви эмпатию и дай 3 практических шага для снижения стресса."
+        
+        # Строим четкую инструкцию для ИИ на русском языке
+        prompt = (
+            f"Инструкция: Ты профессиональный психолог для программистов. "
+            f"Ответь на русском языке дружелюбно, прояви эмпатию и дай 3 практических шага. "
+            f"Проблема разработчика: {user_input}\nОтвет психолога:"
         )
         
         try:
-            response = requests.post(
-                url="https://groq.com",
-                headers={
-                    "Authorization": f"Bearer {API_KEY}",
-                    "Content-Type": "application/json"
-                },
-                data=json.dumps({
-                    "model": "llama3-8b-8192", 
-                    "messages": [
-                        {"role": "system", "content": system_prompt},
-                        *st.session_state.messages
-                    ]
-                })
-            )
-            result = response.json()
+            with st.spinner("ИИ генерирует ответ..."):
+                # Используем бесплатный открытый сервер Hugging Face API без ключей
+                API_URL = "https://huggingface.co"
+                
+                response = requests.post(
+                    API_URL,
+                    json={
+                        "inputs": prompt,
+                        "parameters": {
+                            "max_new_tokens": 300,
+                            "temperature": 0.7,
+                            "return_full_text": False
+                        }
+                    },
+                    timeout=20
+                )
+                
+                result = response.json()
+                
+                # Достаем сгенерированный текст из ответа Hugging Face
+                if isinstance(result, list) and len(result) > 0 and 'generated_text' in result[0]:
+                    ai_response = result[0]['generated_text'].strip()
+                elif isinstance(result, dict) and 'error' in result:
+                    ai_response = f"⚠️ Модель временно загружается, подожди 10 секунд и отправь снова. (Ошибка: {result['error']})"
+                else:
+                    ai_response = "🤖 ИИ задумался, попробуй перефразировать мысль."
+                
+            message_placeholder.markdown(ai_response)
+            st.session_state.messages.append({"role": "assistant", "content": ai_response})
             
-            if 'error' in result:
-                message_placeholder.markdown(f"❌ Ошибка ИИ: {result['error']['message']}")
-            else:
-                ai_response = result['choices']['message']['content']
-                message_placeholder.markdown(ai_response)
-                st.session_state.messages.append({"role": "assistant", "content": ai_response})
         except Exception as e:
-            message_placeholder.markdown(f"❌ Ошибка подключения: {e}")
+            message_placeholder.markdown(f"❌ Ошибка сети: {e}")
