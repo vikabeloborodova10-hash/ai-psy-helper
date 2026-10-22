@@ -54,40 +54,40 @@ if user_input := st.chat_input("Напиши, что случилось..."):
     with st.chat_message("user"):
         st.markdown(user_input)
 
-    # Уникальный ключ key="save_user" для первого сохранения
+    # Сохраняем шаг пользователя в память браузера
     local_storage.setItem("saved_history", json.dumps(st.session_state.messages), key="save_user")
 
     with st.chat_message("assistant"):
-        message_placeholder = st.empty()
-        
-        system_prompt = (
-            "Ты — профессиональный психолог для программистов. "
-            "Отвечай строго на русском языке, дружелюбно, с легким айтишным юмором. "
-            "Выслушай проблему, прояви эмпатию и дай 3 практических шага для снижения стресса."
-        )
-        
-        try:
-            with st.spinner("Настоящий ИИ генерирует ответ..."):
-                response = co.chat(
-                    model="command-a-03-2025", 
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_input}
-                    ]
-                )
-                
-                # Достаем текст ответа нейросети
-                content = response.message.content
-                if isinstance(content, list):
-                    ai_response = content[0].text.strip() if hasattr(content[0], 'text') else content.text.strip()
-                else:
-                    ai_response = content.text.strip()
-                
-            message_placeholder.markdown(ai_response)
-            st.session_state.messages.append({"role": "assistant", "content": ai_response})
+        # st.write_stream — это встроенная магия Streamlit для живой печати текста
+        # Создаем функцию-генератор, которая ловит кусочки текста от ИИ
+        def response_generator():
+            system_prompt = (
+                "Ты — профессиональный психолог для программистов. "
+                "Отвечай строго на русском языке, дружелюбно, с легким айтишным юмором. "
+                "Выслушай проблему, прояви эмпатию и дай 3 практических шага для снижения стресса."
+            )
             
-            # Уникальный ключ key="save_assistant" для второго сохранения
+            # Используем chat_stream вместо обычного chat
+            stream = co.chat_stream(
+                model="command-a-03-2025", 
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_input}
+                ]
+            )
+            
+            # По кусочкам отдаем текст в интерфейс сайта
+            for chunk in stream:
+                if chunk.type == "content-delta":
+                    yield chunk.delta.message.content.text
+
+        try:
+            # Запускаем живую печать
+            ai_response = st.write_stream(response_generator())
+            
+            # После того как текст напечатался, сохраняем его в историю
+            st.session_state.messages.append({"role": "assistant", "content": ai_response})
             local_storage.setItem("saved_history", json.dumps(st.session_state.messages), key="save_assistant")
             
         except Exception as e:
-            message_placeholder.markdown(f"❌ Ошибка подключения к ИИ: {e}")
+            st.markdown(f"❌ Ошибка подключения к ИИ: {e}")
