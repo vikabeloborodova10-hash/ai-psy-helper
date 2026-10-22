@@ -2,8 +2,8 @@ import streamlit as st
 import requests
 import json
 
-# СЮДА ВСТАВЬ СВОЙ НОВЫЙ КЛЮЧ ИЗ GROQ (начинается на gsk_...)
-API_KEY = "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" 
+# БЕЗОПАСНО: Код автоматически забирает ключ из скрытого сейфа Streamlit
+API_KEY = st.secrets["MY_GROQ_SECRET"]
 
 st.set_page_config(page_title="AI Burnout Helper", page_icon="💻", layout="centered")
 st.title("💻 ИИ-Ассистент против выгорания программистов")
@@ -30,7 +30,6 @@ if user_input := st.chat_input("Напиши, что случилось..."):
         )
         
         try:
-            # Делаем прямой запрос к ультрабыстрому серверу Groq
             response = requests.post(
                 url="https://groq.com",
                 headers={
@@ -38,7 +37,7 @@ if user_input := st.chat_input("Напиши, что случилось..."):
                     "Content-Type": "application/json"
                 },
                 data=json.dumps({
-                    "model": "llama3-8b-8192", # Используем стабильную и быструю модель Llama 3
+                    "model": "llama3-8b-8192", 
                     "messages": [
                         {"role": "system", "content": system_prompt},
                         *st.session_state.messages
