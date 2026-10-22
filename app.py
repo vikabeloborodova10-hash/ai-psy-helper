@@ -23,20 +23,27 @@ if user_input := st.chat_input("Напиши, что случилось..."):
 
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
-        system_prompt = "Ты — professional psychologist for software developers. Respond in Russian, be empathetic, friendly, and give 3 practical steps to reduce stress."
+        system_prompt = "Ты — профессиональный психолог для программистов. Отвечай строго на русском языке, дружелюбно, с легким айтишным юмором. Дай 3 практических шага."
         
         try:
             response = requests.post(
                 url="https://openrouter.ai",
                 headers={"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"},
                 data=json.dumps({
-                    "model": "meta-llama/llama-3-8b-instruct:free",
+                    # Поменяли модель на более стабильную и быструю Gemini
+                    "model": "google/gemini-2.5-flash:free", 
                     "messages": [{"role": "system", "content": system_prompt}, *st.session_state.messages]
                 })
             )
             result = response.json()
-            ai_response = result['choices']['message']['content']
-            message_placeholder.markdown(ai_response)
-            st.session_state.messages.append({"role": "assistant", "content": ai_response})
+            
+            # Проверяем, прислал ли сервер ошибку ключа
+            if 'error' in result:
+                message_placeholder.markdown(f"❌ Ошибка ИИ: {result['error']['message']}")
+            else:
+                ai_response = result['choices']['message']['content']
+                message_placeholder.markdown(ai_response)
+                st.session_state.messages.append({"role": "assistant", "content": ai_response})
         except Exception as e:
-            message_placeholder.markdown("❌ Ошибка подключения к ИИ.")
+            message_placeholder.markdown(f"❌ Системная ошибка: {e}")
+
