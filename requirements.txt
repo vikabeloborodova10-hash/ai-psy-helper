@@ -1,1 +1,2 @@
 cohere
+streamlit-local-storage
