@@ -40,7 +40,7 @@ if "messages" not in st.session_state:
 # Кнопка очистки истории
 if st.sidebar.button("🔄 Очистить историю чата"):
     st.session_state.messages = []
-    local_storage.setItem("saved_history", json.dumps([]))
+    local_storage.setItem("saved_history", json.dumps([]), key="clear_storage")
     st.rerun()
 
 # Отображаем сообщения из истории
@@ -54,7 +54,8 @@ if user_input := st.chat_input("Напиши, что случилось..."):
     with st.chat_message("user"):
         st.markdown(user_input)
 
-    local_storage.setItem("saved_history", json.dumps(st.session_state.messages))
+    # Уникальный ключ key="save_user" для первого сохранения
+    local_storage.setItem("saved_history", json.dumps(st.session_state.messages), key="save_user")
 
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
@@ -75,16 +76,18 @@ if user_input := st.chat_input("Напиши, что случилось..."):
                     ]
                 )
                 
-                # ИСПРАВЛЕНО: Безопасное чтение контента, даже если это список (List)
+                # Достаем текст ответа нейросети
                 content = response.message.content
                 if isinstance(content, list):
-                    ai_response = content[0].text.strip()
+                    ai_response = content[0].text.strip() if hasattr(content[0], 'text') else content.text.strip()
                 else:
                     ai_response = content.text.strip()
                 
             message_placeholder.markdown(ai_response)
             st.session_state.messages.append({"role": "assistant", "content": ai_response})
-            local_storage.setItem("saved_history", json.dumps(st.session_state.messages))
+            
+            # Уникальный ключ key="save_assistant" для второго сохранения
+            local_storage.setItem("saved_history", json.dumps(st.session_state.messages), key="save_assistant")
             
         except Exception as e:
             message_placeholder.markdown(f"❌ Ошибка подключения к ИИ: {e}")
