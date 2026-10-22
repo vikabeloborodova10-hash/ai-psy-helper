@@ -29,7 +29,6 @@ st.sidebar.markdown("**О проекте:** Система анализа стр
 # УМНОЕ ВОССТАНОВЛЕНИЕ ИСТОРИИ ИЗ ПАМЯТИ БРАУЗЕРА
 if "messages" not in st.session_state:
     try:
-        # Просим у браузера сохраненную историю
         saved_chat = local_storage.getItem("saved_history")
         if saved_chat and saved_chat != "null":
             st.session_state.messages = json.loads(saved_chat)
@@ -38,7 +37,7 @@ if "messages" not in st.session_state:
     except:
         st.session_state.messages = []
 
-# Кнопка очистки истории (стирает чат и на экране, и в памяти браузера)
+# Кнопка очистки истории
 if st.sidebar.button("🔄 Очистить историю чата"):
     st.session_state.messages = []
     local_storage.setItem("saved_history", json.dumps([]))
@@ -51,12 +50,10 @@ for message in st.session_state.messages:
 
 # Поле ввода для пользователя
 if user_input := st.chat_input("Напиши, что случилось..."):
-    # Добавляем сообщение пользователя на экран
     st.session_state.messages.append({"role": "user", "content": user_input})
     with st.chat_message("user"):
         st.markdown(user_input)
 
-    # Мгновенно сохраняем этот шаг в память браузера
     local_storage.setItem("saved_history", json.dumps(st.session_state.messages))
 
     with st.chat_message("assistant"):
@@ -77,12 +74,16 @@ if user_input := st.chat_input("Напиши, что случилось..."):
                         {"role": "user", "content": user_input}
                     ]
                 )
-                ai_response = response.message.content.text.strip()
+                
+                # ИСПРАВЛЕНО: Безопасное чтение контента, даже если это список (List)
+                content = response.message.content
+                if isinstance(content, list):
+                    ai_response = content[0].text.strip()
+                else:
+                    ai_response = content.text.strip()
                 
             message_placeholder.markdown(ai_response)
             st.session_state.messages.append({"role": "assistant", "content": ai_response})
-            
-            # Сохраняем уже обновленный чат вместе с ответом ИИ в браузер
             local_storage.setItem("saved_history", json.dumps(st.session_state.messages))
             
         except Exception as e:
