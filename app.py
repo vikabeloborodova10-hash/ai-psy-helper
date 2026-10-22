@@ -2,9 +2,12 @@ import streamlit as st
 import requests
 import json
 
+# СЮДА ВСТАВЬ СВОЙ КЛЮЧ ИЗ COHERE (начинается на co_...)
+API_KEY = "9QfBlbcEa8j4LkyTXhgjsnUY9CjNxUeaXeKPP9e9"
+
 st.set_page_config(page_title="AI Burnout Helper", page_icon="💻", layout="centered")
-st.title("💻 ИИ-Ассистент против выгорания программистов")
-st.write("Поделись тем, что тебя бесит в коде или работе, а ИИ-психолог разберет твою проблему.")
+st.title("💻 Настоящий ИИ-Ассистент против выгорания")
+st.write("Поделись тем, что тебя бесит, и реальная нейросеть сгенерирует уникальный ответ.")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -21,43 +24,38 @@ if user_input := st.chat_input("Напиши, что случилось..."):
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         
-        # Строим четкую инструкцию для ИИ на русском языке
-        prompt = (
-            f"Инструкция: Ты профессиональный психолог для программистов. "
-            f"Ответь на русском языке дружелюбно, прояви эмпатию и дай 3 практических шага. "
-            f"Проблема разработчика: {user_input}\nОтвет психолога:"
+        # Системная инструкция для ИИ
+        system_prompt = (
+            "Ты — профессиональный психолог для программистов. "
+            "Отвечай строго на русском языке, дружелюбно, с легким айтишным юмором. "
+            "Выслушай проблему, прояви эмпатию и дай 3 практических шага для снижения стресса."
         )
         
         try:
-            with st.spinner("ИИ генерирует ответ..."):
-                # Используем бесплатный открытый сервер Hugging Face API без ключей
-                API_URL = "https://huggingface.co"
-                
+            with st.spinner("Настоящий ИИ генерирует ответ..."):
+                # Запрос к официальному и открытому API Cohere
                 response = requests.post(
-                    API_URL,
-                    json={
-                        "inputs": prompt,
-                        "parameters": {
-                            "max_new_tokens": 300,
-                            "temperature": 0.7,
-                            "return_full_text": False
-                        }
+                    url="https://cohere.com",
+                    headers={
+                        "Authorization": f"Bearer {API_KEY}",
+                        "Content-Type": "application/json"
                     },
-                    timeout=20
+                    data=json.dumps({
+                        "model": "command-r-plus", # Отличная умная модель
+                        "message": user_input,
+                        "preamble": system_prompt # Инструкция поведения ИИ
+                    }),
+                    timeout=25
                 )
                 
                 result = response.json()
                 
-                # Достаем сгенерированный текст из ответа Hugging Face
-                if isinstance(result, list) and len(result) > 0 and 'generated_text' in result[0]:
-                    ai_response = result[0]['generated_text'].strip()
-                elif isinstance(result, dict) and 'error' in result:
-                    ai_response = f"⚠️ Модель временно загружается, подожди 10 секунд и отправь снова. (Ошибка: {result['error']})"
+                if 'text' in result:
+                    ai_response = result['text'].strip()
+                    message_placeholder.markdown(ai_response)
+                    st.session_state.messages.append({"role": "assistant", "content": ai_response})
                 else:
-                    ai_response = "🤖 ИИ задумался, попробуй перефразировать мысль."
-                
-            message_placeholder.markdown(ai_response)
-            st.session_state.messages.append({"role": "assistant", "content": ai_response})
-            
+                    message_placeholder.markdown(f"⚠️ Ошибка сервера ИИ: {result}")
+                    
         except Exception as e:
-            message_placeholder.markdown(f"❌ Ошибка сети: {e}")
+            message_placeholder.markdown(f"❌ Ошибка подключения: {e}")
