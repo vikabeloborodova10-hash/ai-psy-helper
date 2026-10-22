@@ -2,8 +2,8 @@ import streamlit as st
 import requests
 import json
 
-
-API_KEY = "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" 
+# СЮДА ВСТАВЬ СВОЙ НОВЫЙ КЛЮЧ ИЗ GROQ (начинается на gsk_...)
+API_KEY = "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" 
 
 st.set_page_config(page_title="AI Burnout Helper", page_icon="💻", layout="centered")
 st.title("💻 ИИ-Ассистент против выгорания программистов")
@@ -23,21 +23,30 @@ if user_input := st.chat_input("Напиши, что случилось..."):
 
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
-        system_prompt = "Ты — профессиональный психолог для программистов. Отвечай строго на русском языке, дружелюбно, с легким айтишным юмором. Дай 3 практических шага."
+        system_prompt = (
+            "Ты — профессиональный психолог для программистов. "
+            "Отвечай строго на русском языке, дружелюбно, с легким айтишным юмором. "
+            "Выслушай проблему, прояви эмпатию и дай 3 практических шага для снижения стресса."
+        )
         
         try:
+            # Делаем прямой запрос к ультрабыстрому серверу Groq
             response = requests.post(
-                url="https://openrouter.ai",
-                headers={"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"},
+                url="https://groq.com",
+                headers={
+                    "Authorization": f"Bearer {API_KEY}",
+                    "Content-Type": "application/json"
+                },
                 data=json.dumps({
-                    # Поменяли модель на более стабильную и быструю Gemini
-                    "model": "google/gemini-2.5-flash:free", 
-                    "messages": [{"role": "system", "content": system_prompt}, *st.session_state.messages]
+                    "model": "llama3-8b-8192", # Используем стабильную и быструю модель Llama 3
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        *st.session_state.messages
+                    ]
                 })
             )
             result = response.json()
             
-            # Проверяем, прислал ли сервер ошибку ключа
             if 'error' in result:
                 message_placeholder.markdown(f"❌ Ошибка ИИ: {result['error']['message']}")
             else:
@@ -45,5 +54,4 @@ if user_input := st.chat_input("Напиши, что случилось..."):
                 message_placeholder.markdown(ai_response)
                 st.session_state.messages.append({"role": "assistant", "content": ai_response})
         except Exception as e:
-            message_placeholder.markdown(f"❌ Системная ошибка: {e}")
-
+            message_placeholder.markdown(f"❌ Ошибка подключения: {e}")
