@@ -43,7 +43,7 @@ if user_input := st.chat_input("Напиши, что случилось..."):
             with st.spinner("Настоящий ИИ генерирует ответ..."):
                 # Отправляем запрос через официальный SDK v2
                 response = co.chat(
-                    model="command-r-plus", 
+                    model="command-a-03-2025", 
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_input}
