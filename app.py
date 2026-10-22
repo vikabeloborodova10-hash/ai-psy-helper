@@ -1,14 +1,14 @@
 import streamlit as st
 import cohere
 
-# СЮДА ВСТАВЬ СВОЙ КЛЮЧ ИЗ COHERE (начинается на co_...)
-API_KEY = "9QfBlbcEa8j4LkyTXhgjsnUY9CjNxUeaXeKPP9e9"
+# БЕЗОПАСНО: Код автоматически забирает ключ из скрытого сейфа Streamlit
+API_KEY = st.secrets["MY_GROQ_SECRET"]
 
 st.set_page_config(page_title="AI Burnout Helper", page_icon="💻", layout="centered")
 st.title("💻 Настоящий ИИ-Ассистент против выгорания")
 st.write("Поделись тем, что тебя бесит в коде или работе, и реальная нейросеть сгенерирует ответ.")
 
-# Инициализируем клиента Cohere через официальный безопасный протокол
+# Инициализируем защищенного клиента Cohere V2
 @st.cache_resource
 def get_cohere_client(api_key):
     return cohere.ClientV2(api_key=api_key)
@@ -41,7 +41,7 @@ if user_input := st.chat_input("Напиши, что случилось..."):
         
         try:
             with st.spinner("Настоящий ИИ генерирует ответ..."):
-                # Используем официальный защищенный метод чата Cohere V2
+                # Отправляем запрос через официальный SDK v2
                 response = co.chat(
                     model="command-r-plus", 
                     messages=[
@@ -50,7 +50,7 @@ if user_input := st.chat_input("Напиши, что случилось..."):
                     ]
                 )
                 
-                # Достаем текст ответа напрямую из защищенного объекта
+                # Правильное извлечение текста ответа в Cohere V2
                 ai_response = response.message.content[0].text.strip()
                 
             message_placeholder.markdown(ai_response)
